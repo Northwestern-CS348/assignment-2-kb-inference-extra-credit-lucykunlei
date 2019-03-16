@@ -129,6 +129,13 @@ class KnowledgeBase(object):
         ####################################################
         # Implementation goes here
         # Not required for the extra credit assignment
+        printv("Retracting {!r}", 0, verbose, [fact])
+        if isinstance(fact, Fact):
+            if fact in self.facts:
+                kbf = self._get_fact(fact)
+                self.kb_remove(kbf)
+        else:
+            print('Not a fact, not removed: %s' % (fact))
 
     def kb_explain(self, fact_or_rule):
         """
@@ -161,3 +168,28 @@ class InferenceEngine(object):
         ####################################################
         # Implementation goes here
         # Not required for the extra credit assignment
+        printv('Attempting to infer from {!r} and {!r} => {!r}', 1, verbose,
+            [fact.statement, rule.lhs, rule.rhs])
+        statement1 = fact.statement
+        statement2 = rule.lhs[0]
+        bindings = match(statement1, statement2)
+        if len(rule.lhs) == 1 and bindings:
+            new_fact = Fact(instantiate(rule.rhs, bindings), [[fact,rule]])
+            printv('Inferring {!r} from {!r} and {!r} => {!r}', 0, verbose,
+                [new_fact.statement, fact.statement, rule.lhs, rule.rhs])
+            kb.kb_add(new_fact)
+            new_fact = kb._get_fact(new_fact)
+            fact.supports_facts.append(new_fact)
+            rule.supports_facts.append(new_fact)
+        elif bindings:
+            new_lhs = []
+            for statement in rule.lhs[1:]:
+                new_lhs.append(instantiate(statement, bindings))
+            new_rhs = instantiate(rule.rhs, bindings)
+            new_rule = Rule([new_lhs, new_rhs], [[fact,rule]])
+            printv('Inferring {!r} => {!r} from {!r} and {!r} => {!r}', 0, verbose,
+                [new_rule.lhs, new_rule.rhs, fact.statement, rule.lhs, rule.rhs])
+            kb.kb_add(new_rule)
+            new_rule = kb._get_rule(new_rule)
+            fact.supports_rules.append(new_rule)
+            rule.supports_rules.append(new_rule)
